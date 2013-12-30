@@ -7,6 +7,8 @@ __author__ = "Jérôme Carretero <cJ-bb@zougloub.eu>"
 __copyright__ = "Copyright 2013, %s" % __author__
 __license__ = "Public Domain"
 
+import codecs
+
 vow = "aeiouy";
 con = "bcdfghklmnprstvzx";
 
@@ -99,10 +101,72 @@ def decode(encoded):
 	return bytes(out)
 
 
-if __name__ == '__main__':
-	for a in (b'', b'1234567890', b'Pineapple'):
-		b = encode(a)
-		c = decode(b)
-		print("%s -> %s -> %s" % (a, b, c))
+# Codec interface... inverted.
+# This is because the bubblebabble version is a real string
+# whereas the "cleartext" version consists in bytes...
 
+
+def encode_bb(input, errors='strict'):
+	assert errors == 'strict'
+	s = decode(input)
+	return s, len(input)
+
+def decode_bb(input, errors='strict'):
+	assert errors == 'strict'
+	s = encode(input)
+	return s, len(input)
+
+class Codec(codecs.Codec):
+	def encode(self, input, errors='strict'):
+		return encode_bb(input, errors)
+	def decode(self, input, errors='strict'):
+		return decode_bb(input, errors)
+
+class IncrementalEncoder(codecs.IncrementalEncoder):
+	def encode(self, input, final=False):
+		return encode_bb(input, self.errors)[0]
+
+class IncrementalDecoder(codecs.IncrementalDecoder):
+	def decode(self, input, final=False):
+		return decode_bb(input, self.errors)[0]
+
+class StreamWriter(Codec, codecs.StreamWriter):
+	charbuffertype = bytes
+
+class StreamReader(Codec, codecs.StreamReader):
+	charbuffertype = bytes
+
+def getregentry(a):
+	if a == 'bubblebabble':
+		return codecs.CodecInfo(
+		 name='bubblebabble',
+		 encode=encode_bb,
+		 decode=decode_bb,
+		 incrementalencoder=IncrementalEncoder,
+		 incrementaldecoder=IncrementalDecoder,
+		 streamwriter=StreamWriter,
+		 streamreader=StreamReader,
+		)
+
+
+if __name__ == '__main__':
+	import sys
+	def printf(x):
+		sys.stdout.write(x)
+		sys.stdout.flush()
+
+	for a in (b'', b'1234567890', b'Pineapple'):
+		printf("%s" % a)
+		b = encode(a)
+		printf(" -> %s" % b)
+		c = decode(b)
+		printf(" -> %s\n" % c)
+
+	codecs.register(getregentry)
+	for a in (b'', b'1234567890', b'Pineapple'):
+		printf("%s" % a)
+		b = a.decode('bubblebabble')
+		printf(" -> %s" % b)
+		c = b.encode('bubblebabble')
+		printf(" -> %s\n" % c)
 
