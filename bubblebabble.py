@@ -14,6 +14,8 @@ con = "bcdfghklmnprstvzx";
 
 def encode(s):
 	"""
+	Encode a bytes object into a Bubble Babble string
+
 	:param s: input encoded message as bytes
 	:rtype: str
 	"""
@@ -70,9 +72,10 @@ def _decode_tuple(t, pos):
 
 def decode(encoded):
 	"""
+	Decode a Bubbe Babble string into a bytes object
 	:rtype: bytes
 	"""
-	c = 1
+	C = 1
 	out = bytearray()
 	l = len(encoded)
 
@@ -83,19 +86,19 @@ def decode(encoded):
 	pos = 1
 	while pos < (l//6) * 6:
 		t = _decode_tuple(encoded[pos:pos+6], pos)
-		b1 = _decode_3way(t[0], t[1], t[2], pos, c)
+		b1 = _decode_3way(t[0], t[1], t[2], pos, C)
 		b2 = _decode_2way(t[3], t[4], pos+2)
-		c = ((c * 5) + (b1 * 7) + b2) % 36
+		C = ((C * 5) + (b1 * 7) + b2) % 36
 		out.append(b1)
 		out.append(b2)
 		pos += 6
 
 	t = _decode_tuple(encoded[pos:pos+6], pos)
 	if t[1] == 16:
-		assert t[0] == c % 6, "Corrupt char at %d" % (pos)
-		assert t[2] == c // 6, "Corrupt char at %d" % (pos+2)
+		assert t[0] == C % 6, "Corrupt char at %d" % (pos)
+		assert t[2] == C // 6, "Corrupt char at %d" % (pos+2)
 	else:
-		b1 = _decode_3way(t[0], t[1], t[2], pos, c)
+		b1 = _decode_3way(t[0], t[1], t[2], pos, C)
 		out.append(b1)
 
 	return bytes(out)
